@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Task Reminder</title>
+
+    <style>
+        body {
+            font-family: Arial;
+            background: #f5f7fa;
+        }
+
+        h2 { text-align: center; }
+
+        .container {
+            width: 80%;
+            margin: auto;
+        }
+
+        .form-box {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .form-box input {
+            padding: 10px;
+            margin: 5px;
+            width: 28%;
+        }
+
+        table {
+            width: 100%;
+            background: white;
+        }
+
+        th {
+            background: #007bff;
+            color: white;
+        }
+
+        td { text-align: center; }
+
+        button { margin: 2px; padding: 6px 10px; cursor: pointer; }
+
+        .blink {
+            animation: blinkAnim 1s ease-in-out 2;
+        }
+
+        @keyframes blinkAnim {
+            0% { background: yellow; }
+            100% { background: white; }
+        }
+
+        #toast {
+            visibility: hidden;
+            background: #333;
+            color: white;
+            padding: 10px;
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+        }
+
+        #toast.show {
+            visibility: visible;
+        }
+    </style>
+
+</head>
+
+<body>
+
+<h2>⏰ Task Reminder</h2>
+
+<div class="container">
+
+    <div class="form-box">
+        <input id="title" placeholder="Title">
+        <input id="desc" placeholder="Description">
+        <input id="time" type="datetime-local">
+        <button onclick="addTask()">➕ Add / Update</button>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Description</th> <!-- ✅ Added -->
+                <th>Time</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="list"></tbody>
+    </table>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+const API = "http://localhost:3000/tasks";
+let notified = [];
+let editId = null; // ✅ for edit
+
+function showToast(msg) {
+    const t = document.getElementById("toast");
+    t.innerText = msg;
+    t.className = "show";
+    setTimeout(() => t.className = "", 3000);
+}
+
+function loadTasks(highlightId = null) {
+    fetch(API)
+    .then(res => res.json())
+    .then(data => {
+        let html = "";
+        const now = new Date();
+
+        data.forEach(t => {
+
+            if (!t.is_completed && new Date(t.reminder_time) <= now && !notified.includes(t.id)) {
+                showToast("🔔 Reminder: " + t.title + " Description: "+t.description);
+                notified.push(t.id);
+            }
+
+            html += `
+            <tr id="task-${t.id}">
+                <td>${t.title}</td>
+                <td>${t.description}</td> <!-- ✅ FIXED -->
+                <td>${new Date(t.reminder_time).toLocaleString()}</td>
+                <td>${t.is_completed ? "Done" : "Pending"}</td>
+                <td>
+                    <button onclick="editTask(${t.id})">✏️</button>
+                    <button onclick="done(${t.id})">✔</button>
+                    <button onclick="del(${t.id})">❌</button>
+                </td>
+            </tr>`;
+        });
+
+        document.getElementById("list").innerHTML = html;
+
+        if (highlightId) {
+            const row = document.getElementById("task-" + highlightId);
+            if (row) row.classList.add("blink");
+        }
+    });
+}
+
+// ✅ ADD + UPDATE
+function addTask() {
+    const data = {
+        title: title.value,
+        description: desc.value,
+        reminder_time: time.value
+    };
+
+    if (editId) {
+        fetch(API + "/" + editId, {
+            method: "PUT",
+            headers: {"Content-Type":"application/json"},
+            body: JSON.stringify(data)
+        })
+        .then(() => {
+            showToast("✏️ Task Updated");
+            editId = null;
+            clearForm();
+            loadTasks();
+        });
+    } else {
+        fetch(API, {
+            method: "POST",
+            headers: {"Content-Type":"application/json"},
+            body: JSON.stringify(data)
+        })
+        .then(res => res.json())
+        .then(d => {
+            showToast("✅ Task Added");
+            clearForm();
+            loadTasks(d.id);
+        });
+    }
+}
+
+// ✅ EDIT
+function editTask(id) {
+    fetch(API + "/" + id)
+    .then(res => res.json())
+    .then(t => {
+        title.value = t.title;
+        desc.value = t.description;
+        time.value = t.reminder_time.slice(0,16);
+        editId = id;
+    });
+}
+
+// ✅ DONE FIXED
+function done(id) {
+    fetch(API + "/" + id)
+    .then(res => res.json())
+    .then(t => {
+        fetch(API + "/" + id, {
+            method: "PUT",
+            headers: {"Content-Type":"application/json"},
+            body: JSON.stringify({
+                title: t.title,
+                description: t.description,
+                reminder_time: t.reminder_time,
+                is_completed: true
+            })
+        })
+        .then(() => {
+            showToast("✔ Task Completed");
+            loadTasks(id);
+        });
+    });
+}
+
+// ✅ DELETE
+function del(id) {
+    fetch(API + "/" + id, {method: "DELETE"})
+    .then(() => {
+        showToast("❌ Task Deleted");
+        loadTasks();
+    });
+}
+
+// ✅ CLEAR FORM
+function clearForm() {
+    title.value = "";
+    desc.value = "";
+    time.value = "";
+}
+
+// AUTO LOAD
+setInterval(loadTasks, 10000);
+loadTasks();
+
+</script>
+
+</body>
+</html>
