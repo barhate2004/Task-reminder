@@ -86,7 +86,7 @@
         <thead>
             <tr>
                 <th>Title</th>
-                <th>Description</th> <!-- ✅ Added -->
+                <th>Description</th> 
                 <th>Time</th>
                 <th>Status</th>
                 <th>Action</th>
@@ -102,7 +102,7 @@
 <script>
 const API = "http://localhost:3000/tasks";
 let notified = [];
-let editId = null; // ✅ for edit
+let editId = null; 
 
 function showToast(msg) {
     const t = document.getElementById("toast");
@@ -128,7 +128,7 @@ function loadTasks(highlightId = null) {
             html += `
             <tr id="task-${t.id}">
                 <td>${t.title}</td>
-                <td>${t.description}</td> <!-- ✅ FIXED -->
+                <td>${t.description}</td>
                 <td>${new Date(t.reminder_time).toLocaleString()}</td>
                 <td>${t.is_completed ? "Done" : "Pending"}</td>
                 <td>
@@ -148,7 +148,7 @@ function loadTasks(highlightId = null) {
     });
 }
 
-// ✅ ADD + UPDATE
+//  ADD + UPDATE
 function addTask() {
     const data = {
         title: title.value,
@@ -183,7 +183,7 @@ function addTask() {
     }
 }
 
-// ✅ EDIT
+//  EDIT
 function editTask(id) {
     fetch(API + "/" + id)
     .then(res => res.json())
@@ -195,7 +195,7 @@ function editTask(id) {
     });
 }
 
-// ✅ DONE FIXED
+// 
 function done(id) {
     fetch(API + "/" + id)
     .then(res => res.json())
@@ -217,7 +217,7 @@ function done(id) {
     });
 }
 
-// ✅ DELETE
+//  DELETE
 function del(id) {
     fetch(API + "/" + id, {method: "DELETE"})
     .then(() => {
@@ -226,7 +226,7 @@ function del(id) {
     });
 }
 
-// ✅ CLEAR FORM
+//  CLEAR FORM
 function clearForm() {
     title.value = "";
     desc.value = "";
